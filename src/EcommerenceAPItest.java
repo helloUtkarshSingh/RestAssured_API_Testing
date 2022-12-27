@@ -1,11 +1,13 @@
+import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.http.ContentType;
+import io.restassured.path.json.JsonPath;
 import io.restassured.specification.RequestSpecification;
 import pojo.AddProduct;
 import pojo.GetLoginDetail;
 import pojo.LoginResponse;
-import pojo.Orderdetail;
-import pojo.PlacingDetail;
+import pojo.OrderDetail;
+import pojo.Orders;
 import static io.restassured.RestAssured.*;
 
 import java.io.File;
@@ -17,13 +19,13 @@ public class EcommerenceAPItest {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 
-		//Login Code
+		// Login Code
 		RequestSpecification req = new RequestSpecBuilder().setBaseUri("https://rahulshettyacademy.com")
 				.setContentType(ContentType.JSON).build();
-         
+
 		GetLoginDetail detail = new GetLoginDetail();
-		detail.setUserEmail("RahulSingh@gmail.com"); 
-		detail.setUserPassword("Rahul@12345");
+		detail.setUserEmail("Raju@gmail.com");
+		detail.setUserPassword("Raju@12345");
 
 		RequestSpecification Respreq = given().log().all().spec(req).body(detail);
 		LoginResponse loginrespond = Respreq.when().post("/api/ecom/auth/login").then().log().all().extract().response()
@@ -32,41 +34,48 @@ public class EcommerenceAPItest {
 		String token = loginrespond.getToken();
 		String userId = loginrespond.getUserId();
 		System.out.println(loginrespond.getToken());
-		
-		//Add product 
-		RequestSpecification Addproductreq = new RequestSpecBuilder().setBaseUri("https://rahulshettyacademy.com")
+
+		// Add product
+
+		RequestSpecification addproductBasereq = new RequestSpecBuilder().setBaseUri("https://rahulshettyacademy.com")
 				.addHeader("Authorization", token).build();
-		
-		RequestSpecification Addreq = given().log().all().spec(Addproductreq).param("productName", "PS5").param("productAddedBy", userId)
-		.param("productCategory", "Game").param("productSubCategory", "VR game").param("productPrice", "11500")
-		.param("productDescription", "Sony").param("productImage", "Men").multiPart("productImage",new File("C:\\Users\\vi\\Pictures\\Camera Roll\\car.jpg"));
-		
-		AddProduct addproduct = Addreq.when().post("/api/ecom/product/add-product").then().log().all().assertThat().statusCode(201).extract().response().as(AddProduct.class);
-		String product_id= addproduct.getProductId();
-		System.out.println(product_id);
-		
-		//Place an Order
-		RequestSpecification PlaceproductBasereq = new RequestSpecBuilder().setBaseUri("https://rahulshettyacademy.com")
+
+		RequestSpecification addproductActualreq = given().log().all().spec(addproductBasereq)
+				.param("productName", "Car").param("productAddedBy", userId).param("productCategory", "Electronic")
+				.param("productSubCategory", "Office").param("productPrice", "11500")
+				.param("productDescription", "Apple").param("productFor", "Both")
+				.multiPart("productImage", new File("C:\\Users\\vi\\Pictures\\Camera Roll\\car.jpg"));
+
+		String addproduct = addproductActualreq.when().post("/api/ecom/product/add-product").then().log().all()
+				.extract().asString();
+
+		JsonPath Js = new JsonPath(addproduct);
+
+		String productId = Js.get("productId");
+		System.out.println(productId);
+
+		// Place an Order
+
+		OrderDetail orderDetail = new OrderDetail();
+		orderDetail.setCountry("India");
+		orderDetail.setProductOrderedId(productId);
+
+		List<OrderDetail> orderDetailList = new ArrayList<OrderDetail>();
+		orderDetailList.add(orderDetail);
+
+		Orders orders = new Orders();
+		orders.setOrders(orderDetailList);
+
+		RequestSpecification createOrderBaseReq = new RequestSpecBuilder().setBaseUri("https://rahulshettyacademy.com")
 				.addHeader("Authorization", token).setContentType(ContentType.JSON).build();
-		
-		Orderdetail orderdetail = new Orderdetail();
-		orderdetail.setCountry("India");
-		orderdetail.setProductOrderedId(product_id);
-		List<Orderdetail> OrderdetaiList = new ArrayList<Orderdetail>();
-		OrderdetaiList.add(orderdetail);
-		
-		PlacingDetail placingdetail = new PlacingDetail();
-		placingdetail.setOrder(OrderdetaiList);
-		
-		RequestSpecification PlaceproductActualreq = given().log().all().spec(PlaceproductBasereq).body(placingdetail);
-		
-		String success = PlaceproductActualreq.when().post("/api/ecom/order/create-order")
-		.then().log().all().assertThat().extract().response().asString();
-		
-//		String productID = success.getProductOrderId();
-//		System.out.println(productID);
-		
-		}
-	
+
+		RequestSpecification createOrderReq = given().log().all().spec(createOrderBaseReq).body(orders);
+
+		String responseAddOrder = createOrderReq.when().post("/api/ecom/order/create-order").then().log().all()
+				.extract().response().asString();
+
+		System.out.println(responseAddOrder);
+
+	}
 
 }

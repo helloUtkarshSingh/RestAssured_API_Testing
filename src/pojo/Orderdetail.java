@@ -1,9 +1,9 @@
 package pojo;
 
-public class Orderdetail {
+public class OrderDetail {
 	
-	private String country;
-	private String productOrderedId;
+	 String country;
+	 String productOrderedId;
 	
 	
 	public String getCountry() {
