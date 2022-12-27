@@ -14,6 +14,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.testng.Assert;
+
 public class EcommerenceAPItest {
 
 	public static void main(String[] args) {
@@ -75,7 +77,21 @@ public class EcommerenceAPItest {
 				.extract().response().asString();
 
 		System.out.println(responseAddOrder);
+		
+		//Delete added product
+		
+		RequestSpecification deleteproductBasereq = new RequestSpecBuilder().setBaseUri("https://rahulshettyacademy.com")
+				.addHeader("Authorization", token).build();
+		
+		RequestSpecification deleteproductreq = given().log().all().spec(deleteproductBasereq).pathParam("productId", productId);
+		
+		String deleterespond = deleteproductreq.when().delete("https://rahulshettyacademy.com/api/ecom/product/delete-product/{productId}")
+				                               .then().log().all().extract().asString();
+	
+		JsonPath Jp = new JsonPath(deleterespond);
 
+		String message = Jp.get("message");
+		Assert.assertEquals("Product Deleted Successfully", message);
 	}
 
 }
